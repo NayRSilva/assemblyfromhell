@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <stdio.h>
 #include <ctype.h>
+#include <sstream>      // std::istringstream
+#include <string> 
 
 using namespace std;
 

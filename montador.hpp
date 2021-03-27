@@ -17,13 +17,25 @@
 using namespace std;
 
 typedef struct instructions {
-  int opcode;
+  string opcode;
   int size;
 } instructions;
 
-void createInstructions();
-int main(int argc, char *argv[]);
-void firstpass(string newdocument, unordered_set<instructions> &set);
 
+
+void createDirectiveTable(unordered_map<string, int> &set);
+void createInstructions(unordered_map<string, instructions> &set);
+int main(int argc, char *argv[]);
+void firstpass(string newdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb );
+void splitToVector(string line, vector<string> &vector);
+void placeLabel(int numberline, int *position, vector<string> vector, unordered_map<string, int> &symbTabel, const unordered_map<string, instructions> &set);
+bool isOnTable(string label, unordered_map<string, int> &symbTabel);
+bool isTokenValid(string token);
+bool isLabel(vector<string> vector);
+void isRestOfLabelValid(vector<string>tokenVector,int numberLine);
+bool isOnInstructions(const unordered_map<string, instructions> &set, string aux);
+void addPositiontoInstruction(const unordered_map<string, instructions> &set, string inst, int *position);
+bool isOnDirectives(const unordered_map<string, int> &directives, string aux);
+void organizingLabelsInstructionsDirectives(const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb, vector<string>tokenVector, int *position, int *numberLine);
 
 #endif

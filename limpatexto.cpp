@@ -55,16 +55,36 @@ void removeComments(string &line){
 void  writeline(string &line, ofstream &newfile){
     string regex= " \n\t\f\v\r";
     size_t lineposition;
+    vector<string> vaux;
 
       lineposition = line.find_first_not_of(" \t\f\v\n\r");
+      int lastCharPosition = line.length()-1;
+      //Vou criar um vetor para verificar o caso de
+      /*LABEL:
+      ALGUMA COISA
+       */
+      istringstream auxString(line);
+        string token;   
 
-      if(lineposition!=(string::npos)){
-        cout<< line <<"\n";
+
+      while(auxString >> token){
+          vaux.push_back(token);
+        }
+      if(vaux.size()==1){
+        if(line[lastCharPosition]==':'){
+            // cout<<"Probably a label";
+        }
+        if(lineposition!=(string::npos)){
+        // cout<< line <<"\n";
+        newfile << line << ' ';
+        }
+      }else if(lineposition!=(string::npos)){
+        // cout<< line <<"\n";
         newfile << line << '\n';
       }
     
   }
-
+/*função principal que vai criar meu arquivo sem coisas que me atrapalhem */
 void limpatexto(string filename, string newfilename){
   string line;
   ifstream originalfile; //arquivo original, leitura
