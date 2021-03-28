@@ -13,7 +13,7 @@
 #include "montador.hpp"
 
 using namespace std;
-
+bool isThereError= false;
 //preciso de uma tabela de diretivas
 void createDirectiveTable(unordered_map<string, int> &set){
   set["SPACE"] = 1;
@@ -64,7 +64,11 @@ void createInstructions(unordered_map<string, instructions> &set){
   set["STOP"].size = 1;
 
 }
-
+void changeGlobalError(){
+  if(!isThereError){
+    isThereError=true;
+  }
+}
 void splitToVector(string line, vector<string> &vector){
   //no firstpass eu so quero os labels e identificar as sections
   //meu vetor pode ser algo como ["LABEL:", "OPERACAO", "OPERANDO"] ou ["OPERAÇAO", "OPERANDO"]
@@ -104,10 +108,13 @@ bool isOnTable(string label, unordered_map<string, int> &symbTabel){
 
 bool isTokenValid(string token, int numLine){
     if(token.length()>50){
+      changeGlobalError();
         cout<<"ERRO LEXICO LINHA:"<< numLine << "token invalido, maior que 50 caracteres\n";
       }
 
     if((isdigit(token.at(0)))){
+      changeGlobalError();
+
         cout<<"ERRO LEXICO LINHA:"<< numLine << "token invalido, não pode começar com número\n";
 
     }
@@ -115,6 +122,8 @@ bool isTokenValid(string token, int numLine){
     stringposition= token.find_first_not_of(" ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_");
 
    if(stringposition!=string::npos){
+      changeGlobalError();
+
       cout<<"ERRO LEXICO LINHA:"<< numLine << "token contém caracteres inválidos\n";
 
     //  getchar();
@@ -155,18 +164,21 @@ void placeLabel(int numberline, int *position, vector<string> vector, unordered_
 
     // cout<< first <<" posiÇao "<< aux <<"\n";
     if(isOnTable(first, symbTabel)){
+      changeGlobalError();
+
       cout<<"ERRO SEMÂNTICO LINHA "<< numberline <<" SIMBOLO REDEFINIDO, PRIMEIRA POSIÇÃO SERÁ MANTIDA\n";
     }else if(isOnInstructions(set,first)){
+      changeGlobalError();
+
             cout<<"ERRO SINTATICO LINHA "<< numberline <<" USO DE PALAVRA RESERVADA COMO LABEL\n";
     }else{//se não estiver na tabela, basta colocar
       isTokenValid(first, numberline);
-      cout<<"\n colocando"<<first<<" na positoin: "<< aux <<"\n";
+      // cout<<"\n colocando"<<first<<" na positoin: "<< aux <<"\n";
       symbTabel[first] = aux;//bota na chave "LABEL" a posição
     }; 
     if(isOnInstructions(set, vector[1])){//se for label p instruction, a instruction que conta a posição
           addPositiontoInstruction(set, vector[1], position);
     }else{
-
         *position= aux+1;
 
     }
@@ -178,8 +190,10 @@ void isRestOfLabelValid(vector<string>tokenVector,int numberLine){
   int sizeVector = tokenVector.size();
   //o maior label é LABEL: COPY N1,N2 o que equivale a um tamanho de 3 no vetor
 
-  for(int i=0; i< sizeVector; i++){
+  for(int i=1; i< sizeVector; i++){
       if(i>2){
+      changeGlobalError();
+
       cout<<"ERRO SINTATICO LINHA:"<< numberLine << "número inválido de tokens para Label\n";
       break;
       }
@@ -187,14 +201,17 @@ void isRestOfLabelValid(vector<string>tokenVector,int numberLine){
       size_t stringposition;
       stringposition= tokenVector[i].find_first_not_of("1234567890");
         if(stringposition!=string::npos){
+      changeGlobalError();
+
           cout<<"ERRO SINTATICO LINHA:"<< numberLine << "Tipo de operando inválido para CONST\n";
           
         }
       }else{
+
+
       isTokenValid(tokenVector[i], numberLine);
       }
-      // cout<<tokenVector[i]<<"\n";
-      // getchar();
+
   }
 }
 
@@ -208,12 +225,12 @@ void addPositiontoInstruction(const unordered_map<string, instructions> &set, st
 }
 
 bool isOnDirectives(const unordered_map<string, int> &directives, string aux){
-  cout<<"Procurando diretiva\n";
+  // cout<<"Procurando diretiva\n";
     if(directives.find(aux)!= directives.end()){//se achou na tabela de diretivas
-    cout<<"achou a diretiva" << aux<<"\n";
+    // cout<<"achou a diretiva" << aux<<"\n";
     return true;
   }else{
-    cout<<"aNAO a diretiva" << aux<<"\n";
+    // cout<<"aNAO a diretiva" << aux<<"\n";
 
     return false;
   }
@@ -221,8 +238,6 @@ bool isOnDirectives(const unordered_map<string, int> &directives, string aux){
 
 void organizingLabelsInstructionsDirectives(const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives,unordered_map<string, int> &symb, vector<string>tokenVector, int *position, int *numberLine){
                 int lineNumber= *numberLine;
-                cout<<tokenVector[0]<<"\n";
-                getchar();
                 // cout<<"fazendo o texto começo na linha:"<<lineNumber<<"\n";
               if(isLabel(tokenVector)){
                 // cout<<"Linha: "<<lineNumber<<"\n";
@@ -241,11 +256,14 @@ void organizingLabelsInstructionsDirectives(const unordered_map<string, instruct
 
                 if(isOnInstructions(set, tokenVector[0])){
                   addPositiontoInstruction(set, tokenVector[0], position);
-                  cout<<"Posiçao apos operação "<< *position <<"\n";
                 }else {
                     if(isOnDirectives(directives, tokenVector[0])){//SE FOR UMA DIRETIVA, Nossas unicas diretivas sao SPACE e CONST e elas precisam de LABELS
+                          changeGlobalError();
+                      
                       cout<<"ERRO SINTÁTICO- LINHA: "<< *numberLine<< " LABEL AUSENTE PARA A DIRETIVA: "<< tokenVector[0]<< "\n";
                   }else{//Se nao for uma directive e nao for uma instrução, é uma instrução nao existente
+                        changeGlobalError();
+                      
                       cout<<"ERRO SINTÁTICO- LINHA: "<< *numberLine<< "  OPERAÇÃO OU DIRETIVA NÃO EXISTENTE: "<< tokenVector[0]<< "\n";
 
                   }
@@ -287,13 +305,11 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
         if(tokenVector[0]=="SECTION"){
           if((tokenVector[1]=="DATA")&&(!didText)){//se nao tiver passado por texto primeiro
             dataLine= mydocument.tellg();//guarda a posição de data
-            cout<<"dataline: "<< dataLine<<"\n";
             beginDataLine= numberLine; //Guarda a contagem de linha em data
             numberLine++;
           }
           else if((tokenVector[1]=="TEXT")&&(!didText)){//Quando acha texto da primeira vez
               foundText=true;
-              cout<<line;
               numberLine++;
           }else if((tokenVector[1]=="TEXT")&&(didText)){
               return;
@@ -311,7 +327,6 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
                     }
                     placeLabel(numberLine, &position, tokenVector, symb, set);
 
-
                   isRestOfLabelValid(tokenVector, numberLine);
                 // position++;//aumenta posição em um no label
                 // cout<< tokenVector[0]<< "\n Position: "<<position<<"\n";
@@ -320,6 +335,8 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
                   numberLine++;//aumenta sempre um em linha
 
               }else{//se não for label e estiver dentro de DADOS é porque falta a label
+      changeGlobalError();
+                      
                       cout<<"ERRO SINTÁTICO- LINHA: "<< numberLine<< " LABEL AUSENTE OU INSTRUÇÃO FORA DE SEÇÃO\n";
                  numberLine++;//aumenta sempre um em linha
                   }
@@ -330,7 +347,7 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
           else if(foundText && (!didText)){//se eu ja tiver chegado em texto uma vez mas nao tiver acabado o texto
                         
             if(mydocument.peek() == EOF){//se tiver chegado ao final do texto
-            cout<<"Ultimo documento: "<<tokenVector[0]<<" posicao "<< position<<"\n";
+            // cout<<"Ultimo documento: "<<tokenVector[0]<<" posicao "<< position<<"\n";
               organizingLabelsInstructionsDirectives(set, directives, symb, tokenVector, &position, &numberLine);
 
                 didText= true;
@@ -356,6 +373,214 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
     }
   }
 }
+vector<string> recoverCodesandPositions(vector<string>tokenVector, unordered_map<string, int> &symb, const unordered_map<string, instructions> &set){
+  vector<string>auxVector;
+  vector<string> returnVector;
+  string instructionCode = set.at(tokenVector[0]).opcode;
+  string operandMemory = to_string(symb.at(tokenVector[1]));
+
+  auxVector.push_back(instructionCode);
+  auxVector.push_back(operandMemory);
+  if(tokenVector.size()==3){//se vier de COPY
+    string operandMemory2=to_string(symb.at(tokenVector[2]));
+    auxVector.push_back(operandMemory2);
+
+  }
+  for(auto v: auxVector){
+    if(v.at(0)=='0'){//se o primeiro caracter for 0
+    v.erase(0,1);
+    }
+    returnVector.push_back(v);  
+  }
+  
+  return returnVector;
+
+}
+
+bool isItNumber(string token, int numberLine){
+  size_t stringposition;
+  stringposition= token.find_first_not_of("1234567890.,_");
+  if(stringposition==string::npos){//se nao achar nada que nao seja numero
+      cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " OPERANDO"<< token<<"-- TIPO DE OPERANDO INVÁLIDO\n";
+      return true;
+    }
+  return false;
+
+}
+
+void verifyOperands(vector<string> tokenVector, unordered_map<string, int> &symb, int *numberLine, ofstream &newfile, const unordered_map<string, instructions> &set){
+   if(!isOnTable(tokenVector[1], symb)){//se nao estiver na tabela de simbolo
+      cout<<"\nERRO SEMÂNTICO LINHA: "<< numberLine << " SIMBOLO"<< tokenVector[1]<<" NÃO DEFINIDO\n";
+    }else {//se estiver na tabela
+                        //verifica se teve erro, se nao teve, imprime no novo documento
+        if(!isThereError){
+          vector<string> printVector = recoverCodesandPositions(tokenVector, symb, set);
+        if(tokenVector[0]=="COPY"){
+          for(int i=0; i<3;i++){
+              cout<<printVector[i]<<"\n";
+              newfile<< printVector[i] << " ";
+          }
+
+        }else{
+          for(int i=0; i<2;i++){
+            cout<<printVector[i]<<"\n";
+            newfile<< printVector[i] << " ";
+          }
+        }
+      } 
+    }
+}
+
+void secondpass(string auxdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb ){
+  string newTitle;
+    int numberLine=1;
+  int position = 0;
+  int dataLine;
+  // int endFile;
+  int beginDataLine;
+  bool didText= false; //variavel para controlar se a seção TEXT ja foi lida
+  bool foundText=false; //começa falso para pular as linhas de data
+  string auxstring= auxdocument;
+  size_t dotPosition= auxstring.find_last_of(".");
+
+  newTitle = auxstring.erase(dotPosition+1, string::npos) + "obj";
+
+
+  ifstream mydocument; //arquivo modificado para leitura
+  mydocument.open(auxdocument);
+
+  ofstream newfile; //arquivo novo, escrita
+  newfile.open(newTitle);
+  string line;
+ 
+
+  if (!mydocument.is_open()){//se deu erro ao abrir o arquivo
+    cout << "Não foi possível abrir o arquivo, erro na segunda passagem \n";
+  }else{
+    while (getline (mydocument, line)){
+      size_t lineposition;
+      vector<string> tokenVector;
+      // cout<< line<<"\n";
+      splitToVector(line, tokenVector);
+
+        //tem sempre que achar um section antes de achar outras coisas
+        if(tokenVector[0]=="SECTION"){
+          if((tokenVector[1]=="DATA")&&(!didText)){//se nao tiver passado por texto primeiro
+            dataLine= mydocument.tellg();//guarda a posição de data
+            beginDataLine= numberLine; //Guarda a contagem de linha em data
+            numberLine++;
+          }
+          else if((tokenVector[1]=="TEXT")&&(!didText)){//Quando acha texto da primeira vez
+              foundText=true;
+              numberLine++;
+          }else if((tokenVector[1]=="TEXT")&&(didText)){//Quando acha texto da segunda vez
+              return;
+          }
+
+        }else{//Quando le algo que nao é section
+          if(didText){//Se ja fez o texto uma vez, vai tratar os dados
+
+
+            
+                
+          }
+          else if((!foundText)){//se é data e ainda nao achou o texto, ainda assim conta as linhas
+
+            numberLine++;
+          }
+          else if(foundText && (!didText)){//se eu ja tiver chegado em texto uma vez mas nao tiver acabado o texto, trata o texto
+          //ignora o rótulo
+            if(isLabel(tokenVector)){//se o primeiro token for Label
+                tokenVector.erase(tokenVector.begin());//remove o label do vetor
+            }
+
+          //Verify if instructions exists
+            if(isOnInstructions(set, tokenVector[0])){
+              if(tokenVector[0]=="COPY"){//Se for a instrução COPY
+              //nesse momento COPY deve estar com o vetor de tamanho2
+                if((tokenVector.size()<2) || (tokenVector.size()>2) ){//Se so tiver 1 no vetor, então nao tem operandos, Se nao for STOP, da erro
+                  //se tiver mais de 2 coisas no vetor, tambem ta errado pq as operações so tem um operando
+                      cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " NÚMERO DE OPERANDOS ERRADO\n";
+                  }
+              //verificar se tem a vírgula
+                  size_t comaposition;
+                  comaposition= tokenVector[1].find_first_of(",");
+                 
+                  if(comaposition==string::npos){//se não achar nenhuma vírgula
+                    cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " OPERANDO"<< tokenVector[1]<<"-- TIPO DE OPERANDO INVÁLIDO, falta uma vírgula\n";
+                  }else{
+                     string auxtoken = tokenVector[1];
+                     string auxtoken2= tokenVector[1];
+                     tokenVector[1]= auxtoken.erase(comaposition, string::npos);
+                     auxtoken2= auxtoken2.erase(0, comaposition+1);
+                     tokenVector.push_back(auxtoken2);
+                     if(tokenVector[2]==""){//se o token estiver vazio
+                      cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " NÚMERO DE OPERANDOS ERRADO\n";
+
+                     }else{
+                       if(!isItNumber(tokenVector[1], numberLine)){//se nao for numero
+                        if(!isItNumber(tokenVector[2], numberLine)){//se os dois forem ok
+                        verifyOperands(tokenVector, symb, &numberLine, newfile, set);
+                        
+                        }
+                       }
+                        
+
+                     }
+                  }
+
+              }
+              else if(tokenVector[0]!="STOP"){
+                  if((tokenVector.size()<2) || (tokenVector.size()>2) ){//Se so tiver 1 no vetor, então nao tem operandos, Se nao for STOP, da erro
+                  //se tiver mais de 2 coisas no vetor, tambem ta errado pq as operações so tem um operando
+                      cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " NÚMERO DE OPERANDOS ERRADO\n";
+                  }
+                //Se não for STOP, possui operandos, vamos catar eles
+                //verifyOperands
+                  size_t stringposition;
+                  stringposition= tokenVector[1].find_first_not_of("1234567890.,_");
+                  if(stringposition==string::npos){//se nao achar nada que nao seja numero
+                    cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " OPERANDO"<< tokenVector[1]<<"-- TIPO DE OPERANDO INVÁLIDO\n";
+
+                  }else{//se for algo diferente de um número
+                        verifyOperands(tokenVector, symb, &numberLine, newfile, set);
+                }
+              }else{//se for o STOP
+
+                  if(tokenVector.size()>1){
+                    cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " NÚMERO DE OPERANDOS ERRADO\n";
+                  }else{
+                    string auxprint= set.at(tokenVector[0]).opcode;
+                    newfile<< auxprint << " ";
+                  }
+              }
+            }else{//se nao achouu na tabela de instrução
+              cout<<"ERRO SINTÁTICO LINHA: "<< numberLine << " INSTRUÇÃO: "<< tokenVector[0] <<" Inválida\n";
+            }
+
+            if(mydocument.peek() == EOF){//se tiver chegado ao final do texto
+              organizingLabelsInstructionsDirectives(set, directives, symb, tokenVector, &position, &numberLine);
+
+                didText= true;
+                numberLine = beginDataLine;
+                mydocument.clear();
+                mydocument.seekg(dataLine);//pula de volta para uma linha após data
+                if((didText)&&(foundText)){
+                  // cout<<"tudo true\n";
+                }
+                
+            }//se não tiver chegado ao final do texto procura por label e erros lexicos
+            else{
+              
+              
+            }
+          }     
+        }
+      }
+    }
+  }
+
+
 
 int main(int argc, char *argv[]) {
 
@@ -388,15 +613,13 @@ int main(int argc, char *argv[]) {
   createDirectiveTable(directives);
   createInstructions(instructionsSet);
   firstpass(tempdocument, instructionsSet, directives, symbolTable);
+  secondpass(tempdocument, instructionsSet, directives, symbolTable);
   //tokenizar e erros lexicos
   // for(auto inst : instructionsSet){
   //   cout<< inst.first << "  " << inst.second.opcode<<"\n";
 //   // }
-cout<<"Acabou o first, vamos ver a symb:\n";
-for(auto inst : symbolTable){
-    cout<< inst.first << "  " << inst.second<<"\n";
-  }
-
-
+// for(auto inst : symbolTable){
+//     cout<< inst.first << "  " << inst.second<<"\n";
+//   }
 
 }
