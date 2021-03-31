@@ -1,11 +1,17 @@
-#Montador
+# Montador
 
-##Comando para compilar:
+## Comando para compilar:
 make
 
-##pra rodar:
+## Comando pra rodar:
 ./montador meuarquivo.asm
 
+## Comando para apagar pastas antigas
+make clean
+
+
+Aluna: Nayara Silva
+SB 2020/02
 
 
 --------------------------------------------------------------------------

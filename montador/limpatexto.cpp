@@ -65,7 +65,6 @@ void  writeline(string &line, ofstream &newfile){
       istringstream auxString(line);
         string token;   
 
-
       while(auxString >> token){
           vaux.push_back(token);
         }
@@ -85,7 +84,7 @@ void  writeline(string &line, ofstream &newfile){
   }
 /*função principal que vai criar meu arquivo sem coisas que me atrapalhem */
 void limpatexto(string filename, string newfilename){
-  string line;
+  string linha;
   ifstream originalfile; //arquivo original, leitura
   originalfile.open(filename);
   ofstream newfile; //arquivo novo, escrita
@@ -95,20 +94,20 @@ void limpatexto(string filename, string newfilename){
   if (!originalfile.is_open()){//se deu erro ao abrir o arquivo
     cout << "Não foi possível abrir o arquivo, erro ao limpar texto \n";
   }else{
-    while (getline (originalfile, line)){//Primeiro: Preciso do texto em maiusculo.  
-      transform(line.begin(), line.end(), line.begin(), ::toupper);
+    while (getline (originalfile, linha)){//Primeiro: Preciso do texto em maiusculo.  
+      transform(linha.begin(), linha.end(), linha.begin(), ::toupper);
      
       //tirando comentarios
 
-      removeComments(line);
+      removeComments(linha);
 
       //tirando os espaços começo e final
-      removeSpaceBeginEnd(line);
+      removeSpaceBeginEnd(linha);
 
       //tira o resto dos espaços p deixar so o que eu precio
-      removeExtraSpace(line); 
+      removeExtraSpace(linha); 
       //escreve no de saida
-      writeline(line, newfile);
+      writeline(linha, newfile);
 
     }
     newfile.close();
