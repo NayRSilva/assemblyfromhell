@@ -1,6 +1,14 @@
-Comando para compilar: make
-pra rodar: ./montador
+#Montador
 
+##Comando para compilar:
+make
+
+##pra rodar:
+./montador meuarquivo.asm
+
+
+
+--------------------------------------------------------------------------
 tipos de erro:
 
 declarações e rótulos ausentes(Quando voce tem SPACE Ou CONST sem rotulo antes

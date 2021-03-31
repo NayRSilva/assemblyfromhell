@@ -20,18 +20,17 @@ void removeSpaceBeginEnd(string &line){
 void removeExtraSpace(string &line){//pegar o espaço vazio entre textos
   string regex= " \n\t\f\v\r";
   //já não tem espaço no final nem no fim da linha. O próximo espaço em branco está entre textos
-  //Colunas 1 e 2
+  //primeiras e segundas palavras
   size_t lineposition;
-  lineposition = line.find_first_of(regex);//primeiro espaço pós-texto
+  lineposition = line.find_first_of(regex);//espaço depois do texto
   size_t beforeTextPosition= (line.find_first_not_of(regex, lineposition))- lineposition;//acha o primeiro que não é espaço, dado a posição de lineposition
   
   if(lineposition <= line.length()){
     
     line.replace(lineposition,beforeTextPosition, " ");
   }
-  //colunas 2 e 3
-  //tem um espaço entre coluna 1 e 2 que precisa ser ignorado
-  lineposition = line.find_first_of(regex);//primeiro espaço pós-texto  
+  //segundas e terceiras coisinhas
+  lineposition = line.find_first_of(regex);
   size_t afterSecondColumn = line.find_first_of(regex, lineposition+1);
   size_t beforeTextPosition2= (line.find_first_not_of(regex, afterSecondColumn))- afterSecondColumn;
   
@@ -70,8 +69,8 @@ void  writeline(string &line, ofstream &newfile){
       while(auxString >> token){
           vaux.push_back(token);
         }
-      if(vaux.size()==1){
-        if(line[lastCharPosition]==':'){
+      if((vaux.size()==1) &&(vaux[0]!="STOP")){
+        if(line[lastCharPosition]==':'){//lembrar de tirar isso daqui... eu acho
             // cout<<"Probably a label";
         }
         if(lineposition!=(string::npos)){
@@ -99,16 +98,16 @@ void limpatexto(string filename, string newfilename){
     while (getline (originalfile, line)){//Primeiro: Preciso do texto em maiusculo.  
       transform(line.begin(), line.end(), line.begin(), ::toupper);
      
-      //2: Remove comentarios
+      //tirando comentarios
 
       removeComments(line);
 
-      //3: remove os espaços do início e do fim
+      //tirando os espaços começo e final
       removeSpaceBeginEnd(line);
 
-      //4: remove espaços enormes entre palavras.
+      //tira o resto dos espaços p deixar so o que eu precio
       removeExtraSpace(line); 
-      //5: escreve no artigo final
+      //escreve no de saida
       writeline(line, newfile);
 
     }
