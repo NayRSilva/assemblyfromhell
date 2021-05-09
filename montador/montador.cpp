@@ -14,10 +14,18 @@
 
 using namespace std;
 bool isThereError= false;
+int textSize;
+bool beginEndPresent=false;
 //preciso de uma tabela de diretivas
 void createDirectiveTable(unordered_map<string, int> &set){
   set["SPACE"] = 1;
   set["CONST"] = 1;
+  set["EXTERN"]= 1;
+  set["BEGIN"]= 1;
+  set["PUBLIC"]=1;
+  set["END"]=1;
+
+
 }
 //Preciso de instruções
 void createInstructions(unordered_map<string, instructions> &set){
@@ -64,7 +72,69 @@ void createInstructions(unordered_map<string, instructions> &set){
   set["STOP"].size = 1;
 
 }
-int findLine(vector<string> tokenVector, string originalFile){
+void findBeginEnd(string newdocument ){
+  bool findBegin = false;
+  bool findEnd=false;
+  ifstream mydocument; //arquivo modificado para leitura
+  mydocument.open(newdocument);
+//ROTULO: Nao pode começar com numero nem ter caractere especial
+//ROTULO: OPERACAO OPERANDOS
+  string line; 
+
+    if(!mydocument.is_open()){//se deu erro ao abrir o arquivo
+    cout << "Não foi possível abrir o arquivo, erro ao limpar texto \n";
+  }
+  else{
+    while (getline (mydocument, line)){
+      // size_t lineposition;
+      vector<string> tokenVector;
+      // cout<< line<<"\n";
+      splitToVector(line, tokenVector);
+
+      if(tokenVector.size()>1){
+        if(tokenVector[1]=="BEGIN"){
+          findBegin= true;
+        }
+
+      }
+
+      if(tokenVector[0]=="END"){
+        findEnd= true;
+      }
+      
+      }
+      if((!findBegin)||(!findEnd)){
+        isThereError= true;
+        cout<<"Error: Couldnt find BEGIN or END directives\n";
+      }else{
+        beginEndPresent=true;
+      }
+  }
+mydocument.close();
+
+}
+
+void findSize(string newdocument ){
+
+  int size=0;
+  ifstream mydocument; //arquivo modificado para leitura
+  mydocument.open(newdocument);
+//ROTULO: Nao pode começar com numero nem ter caractere especial
+//ROTULO: OPERACAO OPERANDOS
+  string line; 
+
+    if(!mydocument.is_open()){//se deu erro ao abrir o arquivo
+    cout << "Não foi possível abrir o arquivo, erro ao limpar texto \n";
+  }
+  else{
+    while (getline (mydocument, line)){
+      size++;
+  }
+  mydocument.close();
+  textSize= size;
+  }
+}
+int findLine(vector<string> tokenVector, string originalFile){//função p achar linha no programa original..
   int linenum=1;
   ifstream mydocument; //arquivo original, leitura
   mydocument.open(originalFile);
@@ -76,7 +146,6 @@ int findLine(vector<string> tokenVector, string originalFile){
     removeComments(line);
     removeExtraSpace(line);
     // cout<<line<<"\n";
-    // getchar();
     vector<string> auxVector;
     //   // cout<< line<<"\n";
       splitToVector(line, auxVector);
@@ -128,6 +197,44 @@ bool isOnTable(string label, unordered_map<string, int> &symbTabel){
   return false;
 }
 
+bool isonDefinitions(string label, unordered_map<string, int> &defTable){
+  if(defTable.empty()){
+    return false;
+  }else{
+    if(defTable.find(label)!=defTable.end()){ 
+      return true;  }
+}
+return false;
+}
+  
+void placeDef(string label, unordered_map<string, int> &defTable, int *position, vector<string> vec, const unordered_map<string, instructions> &set){
+    int aux=*position;
+    if(isOnInstructions(set, vec[1])){
+    aux = aux - set.at(vec[1]).size;//corrigindo a posição
+
+    }else{
+      aux=aux-1;
+    }
+    cout<<label<<" "<<aux<<"\n";
+    defTable[label] = aux;
+}
+
+bool isDefinedTable(string label, unordered_map<string, int> &defTable){
+  if(defTable.empty()){
+    return false;
+  }else{
+    if(defTable.find(label)!=defTable.end()){//achou
+      if(defTable.at(label)!=0){
+        cout<<label<<" "<<defTable.at(label)<<"\n";
+        return true;
+
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
 void isTokenValid(string token, string filename, vector<string> tokenVector){
     if(token.length()>50){
       changeGlobalError();
@@ -173,28 +280,62 @@ bool isOnInstructions(const unordered_map<string, instructions> &set, string aux
   return false;
 }
 
-void placeLabel(int *position, vector<string> vector, unordered_map<string, int> &symbTabel, const unordered_map<string, instructions> &set, string originalFile){
+void placeLabel(int *position, vector<string> vector, unordered_map<string, int> &symbTabel, const unordered_map<string, instructions> &set, string originalFile, unordered_map<string, int> &defTabel, unordered_map<string, usecases> &useTable ){
   string first= vector[0];//First é o label
     // size_t stringposition;
   int aux= *position;
+
+  
   if(isOnTable(first, symbTabel)){
-    changeGlobalError();
-    int errorLine= findLine(vector, originalFile);
-    cout<<"ERRO SEMÂNTICO LINHA "<< errorLine <<" SIMBOLO "<<first<<"  REDEFINIDO, PRIMEIRA POSIÇÃO SERÁ MANTIDA\n";
+      if(isonDefinitions(first, defTabel)){//se estiver na tabela de definição
+        // cout<<"teste "<<first;
+          if(isDefinedTable(first, defTabel)){//e for definido
+              changeGlobalError();
+              int errorLine= findLine(vector, originalFile);
+              cout<<"ERRO SEMÂNTICO LINHA "<< errorLine <<" SIMBOLO "<<first<<"  REDEFINIDO, PRIMEIRA POSIÇÃO SERÁ MANTIDA\n";
+              
+    }
+    }else{//se tiver na tabela de simbolos mas nao na de definição
+       changeGlobalError();
+              int errorLine= findLine(vector, originalFile);
+              cout<<"ERRO SEMÂNTICO LINHA "<< errorLine <<" SIMBOLO "<<first<<"  REDEFINIDO, PRIMEIRA POSIÇÃO SERÁ MANTIDA\n";
+    }
+
+
   }
   else if(isOnInstructions(set,first)){
+
     changeGlobalError();
     int errorLine= findLine(vector, originalFile);
     cout<<"ERRO SINTATICO LINHA "<< errorLine <<" USO DE PALAVRA RESERVADA COMO LABEL\n";
     }
   else{//se não estiver na tabela, basta colocar
-    isTokenValid(first, originalFile, vector);
-    symbTabel[first] = aux;//bota na chave "LABEL" a posição
+
+    if((vector[1]=="EXTERN")||(vector[1]=="BEGIN")){//se for a diretiva extern ou begin recebe um 0
+        cout<<vector[1]<<"\n";
+        getchar();
+        isTokenValid(first, originalFile, vector);
+        symbTabel[first] = 0;//bota na chave "LABEL" a posição 0
+        //INSERE NA TABELA DE USO
+        if((vector[1]=="EXTERN")){
+          useTable[first].appearances= "0";
+
+        }
+
+      }
+    // if(vector.size()>2){//maio que dois normalmente é const ne
+     
+
+      isTokenValid(first, originalFile, vector);
+      symbTabel[first] = aux;//bota na chave "LABEL" a posição
+    // }
   }; 
   if(isOnInstructions(set, vector[1])){//se for label p instruction, a instruction que conta a posição
+
     addPositiontoInstruction(set, vector[1], position);
   }
   else{
+
     *position= aux+1;
   }
 }
@@ -240,15 +381,26 @@ bool isOnDirectives(const unordered_map<string, int> &directives, string aux){
   }
 }
 
-void organizingLabelsInstructionsDirectives(const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives,unordered_map<string, int> &symb, vector<string>tokenVector, int *position, string firstfile){
+bool isOnUse(unordered_map<string, usecases> &usage, string aux){
+  if(usage.find(aux)== usage.end()){//se achou na tabela de instruções
+    return false;
+  }
+  return true;
+}
+
+void organizingLabelsInstructionsDirectives(const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives,unordered_map<string, int> &symb, vector<string>tokenVector, int *position, string firstfile, unordered_map<string, int> &deftable, unordered_map<string, usecases> &usetable){
   int errorLine;
   if(isLabel(tokenVector)){
     size_t stringposition;
     stringposition = tokenVector[0].find_first_of(":");
-    if(stringposition!=string::npos){
+    if(stringposition!=string::npos){//apaga o :
       tokenVector[0].erase(stringposition,stringposition+1);
     }
-    placeLabel(position, tokenVector, symb, set, firstfile);
+      placeLabel(position, tokenVector, symb, set, firstfile, deftable, usetable);
+      if(isonDefinitions(tokenVector[0], deftable)){
+                placeDef(tokenVector[0],deftable, position, tokenVector, set);
+              }
+
 
 
     isRestOfLabelValid(tokenVector, firstfile);
@@ -256,12 +408,18 @@ void organizingLabelsInstructionsDirectives(const unordered_map<string, instruct
   else{//se não é label, é operação ou diretiva
     if(isOnInstructions(set, tokenVector[0])){
         addPositiontoInstruction(set, tokenVector[0], position);
+        //se estiver na tabela de uso, é externo, precisa mudar o numero da tabela
       }
     else{
       if(isOnDirectives(directives, tokenVector[0])){//SE FOR UMA DIRETIVA, Nossas unicas diretivas sao SPACE e CONST e elas precisam de LABELS
+        if(tokenVector[0]!="END"){//end nao possui label
+
         changeGlobalError();
         errorLine= findLine(tokenVector, firstfile);
-        cout<<"ERRO SINTÁTICO- LINHA: "<< errorLine<< " LABEL AUSENTE PARADIRETIVA: "<< tokenVector[0]<< "\n";
+        cout<<"ERRO SINTÁTICO- LINHA: "<< errorLine<< " LABEL AUSENTE PARA DIRETIVA: "<< tokenVector[0]<< "\n";
+
+
+        }
       }
       else{//Se nao for uma directive e nao for uma instrução, é uma instrução nao existente
         changeGlobalError();
@@ -273,9 +431,167 @@ void organizingLabelsInstructionsDirectives(const unordered_map<string, instruct
     // *numberLine= lineNumber + 1;//aumenta sempre um em linha
   }
 }
+void createBitMap(vector<int> &bitmap, string newdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives){
+  cout<<"create bitmap\n";
+  ifstream mydocument; //arquivo modificado para leitura
+  mydocument.open(newdocument);
+    string line; 
+    bool foundText;
+
+  if(!mydocument.is_open()){//se deu erro ao abrir o arquivo
+    cout << "Não foi possível abrir o arquivo, erro ao criar bitmap \n";
+  }
+  else{
+    while (getline (mydocument, line)){
+      vector<string> tokenVector;
+      splitToVector(line, tokenVector);
+      if(foundText){//do my thing
+      if(tokenVector.size()==1){//é stop ou END
+        bitmap.push_back(0);
+
+      }else if(isOnInstructions(set, tokenVector[0])){//se começar com uma instrução
+          bitmap.push_back(0);
+          if((tokenVector[0]=="COPY")&&(tokenVector.size()>2)){
+            bitmap.push_back(1);
+            bitmap.push_back(1);
+
+          }else{//se não for copy
+            bitmap.push_back(1);
+          }
+
+        }else if(isLabel(tokenVector)){//se nao começar como instruçao pode ser label
+          if(isOnDirectives(directives, tokenVector[1])){//depois da label vem diretiva?
+            if((tokenVector[1]=="SPACE")&&(tokenVector.size()>2)){
+                int times = atoi(tokenVector[2].c_str());
+                for(int i=0; i<times;i++){
+                  bitmap.push_back(0);
+                }
+            }else{//se nao for space vai ser const
+                bitmap.push_back(0);
+                bitmap.push_back(0);
+
+            }
+
+          }else if(isOnInstructions(set, tokenVector[1])){//se for uma instrução
+            bitmap.push_back(0);
+          if((tokenVector[0]=="COPY")&&(tokenVector.size()>2)){
+            bitmap.push_back(1);
+            bitmap.push_back(1);
+
+          }else{//se não for copy
+            bitmap.push_back(1);
+          }
+
+        }
+
+        }
+
+      }else{
+          if((tokenVector[1]=="TEXT")){//Quando acha texto da primeira vez
+              foundText=true;
+            }
+      }
 
 
-void firstpass(string newdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb, string firstfile){
+    }
+  }
+  mydocument.close();
+
+}
+void verifyusage(string newdocument, const unordered_map<string, instructions> &set, unordered_map<string, usecases> &usage){
+  // cout<<"entrou em usage\n";
+  // int numberLine=1;
+  bool textfound= false;
+  int positionusage = 0;
+  ifstream mydocument; //arquivo modificado para leitura
+  mydocument.open(newdocument);
+    string line; 
+
+  if(!mydocument.is_open()){//se deu erro ao abrir o arquivo
+    cout << "Não foi possível abrir o arquivo\n";
+  }
+  else{
+    while (getline (mydocument, line)){
+
+      vector<string> tokenVector2;
+      // cout<< line<<"\n";
+      splitToVector(line, tokenVector2);
+
+        // cout<<tokenVector2[0]<<"\n";
+      //se estiver em Instruçoes
+      if(tokenVector2.size()>1){
+        if(tokenVector2[1]=="TEXT"){
+          textfound=true;
+        }
+      }
+      if(textfound){      
+        if(isOnInstructions(set, tokenVector2[0])){
+              if(tokenVector2.size()==1){
+                positionusage= positionusage+1;
+            }else{
+                for(auto use : usage){
+                  // cout<< use.first << "  " << use.second.appearances <<"\n";
+
+                   if(use.first == tokenVector2[1]){
+                     if(tokenVector2.size()>2){//se for do formato output Y + 2
+                       string aux= tokenVector2[1];
+                         // cout<<"vai começar a bagulna\n";
+                         int vectorSize = tokenVector2.size();
+                         string intaux = tokenVector2[vectorSize-1];
+                         int opaux = atoi(intaux.c_str());
+                         int posaux = positionusage+1+opaux;
+                           string old = usage.at(tokenVector2[1]).appearances;
+                         usage[tokenVector2[1]].appearances= old + " " + (to_string(posaux));
+                    }else{
+                        string aux= tokenVector2[1];
+                        int posaux= positionusage+1;
+                        string old = usage.at(tokenVector2[1]).appearances;
+                        usage[tokenVector2[1]].appearances= old + " " + (to_string(posaux));
+                        }
+                      }
+                    }
+                  positionusage = positionusage+ (set.at(tokenVector2[0]).size);
+            }
+        }  
+      else{//se nao for instrução pode ser label ou END
+        if(isLabel(tokenVector2)){
+          if(isOnInstructions(set, tokenVector2[1])){
+
+          for(auto use : usage){
+            if(use.first == tokenVector2[1]){
+              if(tokenVector2.size()>3){//se for do formato output Y + 2
+                      string aux= tokenVector2[2];
+
+                       int vectorSize = tokenVector2.size();
+                       string intaux = tokenVector2[vectorSize-1];
+                       int opaux = atoi(intaux.c_str());
+                       int posaux = positionusage+1+opaux;
+                       string old = usage.at(tokenVector2[1]).appearances;
+                        usage[tokenVector2[2]].appearances= old + " " + (to_string(posaux));
+                  }else{
+                      string aux= tokenVector2[2];
+                      int posaux= positionusage+1;
+                      string old = usage.at(tokenVector2[2]).appearances;
+                      usage[tokenVector2[2]].appearances= old + " " + (to_string(posaux));
+                      }
+
+              }
+            }
+
+            positionusage = positionusage+ (set.at(tokenVector2[1]).size);
+
+          }else{
+            positionusage= positionusage+1;
+          }
+        }
+       }
+      }
+    }
+    mydocument.close();
+  }
+}
+
+void firstpass(string newdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb, string firstfile, unordered_map<string, int> &defTab, unordered_map<string, usecases> &useTab){
   int numberLine=1;
   int position = 0;
   int dataLine;
@@ -283,6 +599,9 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
   int beginDataLine;
   bool didText= false; //variavel para controlar se a seção TEXT ja foi lida
   bool foundText=false; //começa falso para pular as linhas de data
+  bool foundData= false;
+  bool foundBegin= false;
+
   ifstream mydocument; //arquivo modificado para leitura
   mydocument.open(newdocument);
 //ROTULO: Nao pode começar com numero nem ter caractere especial
@@ -300,10 +619,11 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
       splitToVector(line, tokenVector);
 
         //tem sempre que achar um section antes de achar outras coisas
+      
       if(tokenVector[0]=="SECTION"){
 
         if((tokenVector[1]=="DATA")&&(!didText)){//se DATA ESTIVER NO INICIO DO TEXTO E nao tiver passado por texto primeiro
-
+          foundData=true;
           dataLine= mydocument.tellg();//guarda a posição de data
           beginDataLine= numberLine; //Guarda a contagem de linha em data
           numberLine++;
@@ -318,6 +638,51 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
           }
         }
         else{//Quando le algo que nao é section
+
+          if((foundBegin)&&(!didText)&&(!foundData)){//se achou o begin e nao fez nenhuma outra ainda
+          //tenho que ter so labels e PUBLIC aqui
+            if(tokenVector[0]=="PUBLIC"){
+
+              //bota na tabela de simbolos
+                isTokenValid(tokenVector[1], firstfile, tokenVector);
+                // symb[tokenVector[1]] = 0;
+                defTab[tokenVector[1]] = 0;
+            }else if(isLabel(tokenVector)){
+                size_t stringposition;
+                stringposition = tokenVector[0].find_first_of(":");
+                if(stringposition!=string::npos){
+                  tokenVector[0].erase(stringposition,stringposition+1);
+                }
+                if(tokenVector[1]!="EXTERN"){
+                   placeLabel(&position, tokenVector, symb, set, firstfile, defTab, useTab);
+
+                }else{
+                  symb[tokenVector[0]]=0;
+                  useTab[tokenVector[0]].appearances = "0";
+                }
+                position=0;
+              // cout<<tokenVector[0];
+                  // cout<<"\nfrom data\n";
+
+                isRestOfLabelValid(tokenVector, firstfile);
+
+            }
+            numberLine++;
+          }else if(tokenVector.size()>1){
+            if((tokenVector[1]=="BEGIN")&&(!didText)&&(!foundData)){//se for BEGIN e não resto do documento
+
+              foundBegin=true;
+              size_t stringposition;
+              stringposition = tokenVector[0].find_first_of(":");
+              if(stringposition!=string::npos){
+                tokenVector[0].erase(stringposition,stringposition+1);
+              }
+              placeLabel(&position, tokenVector, symb, set, firstfile, defTab, useTab );
+              numberLine++;//aumenta sempre um em linha
+
+            }
+          }
+
           if(didText){//se o texto tiver acabado
 
             if(isLabel(tokenVector)){
@@ -326,10 +691,12 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
               if(stringposition!=string::npos){
                 tokenVector[0].erase(stringposition,stringposition+1);
               }
-              placeLabel(&position, tokenVector, symb, set, firstfile);
-              // cout<<tokenVector[0];
+              // cout<<"place label in texto\n";
+              placeLabel(&position, tokenVector, symb, set, firstfile, defTab, useTab);
+              if(isonDefinitions(tokenVector[0], defTab)){
+                placeDef(tokenVector[0], defTab, &position, tokenVector, set);
+              }
                   // cout<<"\nfrom data\n";
-                // getchar();
 
               isRestOfLabelValid(tokenVector, firstfile);
               
@@ -344,7 +711,8 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
             numberLine++;
           }
           else if(foundText && (!didText)){//se eu ja tiver chegado em texto uma vez mas nao tiver acabado o texto
-              organizingLabelsInstructionsDirectives(set, directives, symb, tokenVector, &position, firstfile);
+
+              organizingLabelsInstructionsDirectives(set, directives, symb, tokenVector, &position, firstfile, defTab, useTab);
                         
             if(mydocument.peek() == EOF){//se tiver chegado ao final do texto
             // cout<<"Ultimo documento: "<<tokenVector[0]<<" posicao "<< position<<"\n";
@@ -363,10 +731,13 @@ void firstpass(string newdocument, const unordered_map<string, instructions> &se
   }
 }
 vector<string> recoverCodesandPositions(vector<string>tokenVector, unordered_map<string, int> &symb, const unordered_map<string, instructions> &set){
+  // getchar();
   vector<string>auxVector;
   vector<string> returnVector;
   string instructionCode = set.at(tokenVector[0]).opcode;
   string operandMemory = to_string(symb.at(tokenVector[1]));
+  // cout<<<<" memoria op \n";
+  // getchar();
 
   auxVector.push_back(instructionCode);
   auxVector.push_back(operandMemory);
@@ -376,7 +747,7 @@ vector<string> recoverCodesandPositions(vector<string>tokenVector, unordered_map
 
   }
   for(auto v: auxVector){
-    if(v.at(0)=='0'){//se o primeiro caracter for 0
+    if((v.at(0)=='0')&&(v.size()>1)){//se o primeiro caracter for 0
     v.erase(0,1);
     }
     returnVector.push_back(v);  
@@ -400,6 +771,8 @@ bool isItNumber(string token, string firstfile, vector<string> tokenVector){
 }
 
 void verifyOperands(vector<string> tokenVector, unordered_map<string, int> &symb, ofstream &newfile, const unordered_map<string, instructions> &set, string originalFile){
+  // cout<<"verify operands: "<< tokenVector[0]<<" "<<tokenVector[1]<<"\n";
+  // getchar();
   if(!isOnTable(tokenVector[1], symb)){//se nao estiver na tabela de simbolo
     changeGlobalError();
     int errorLine= findLine(tokenVector, originalFile);
@@ -409,6 +782,8 @@ void verifyOperands(vector<string> tokenVector, unordered_map<string, int> &symb
   else {//se estiver na tabela
   //verifica se teve erro, se nao teve, imprime no novo documento
     if(!isThereError){
+      // cout<<"parece que teve erro\n";
+      // getchar();
       vector<string> printVector = recoverCodesandPositions(tokenVector, symb, set);
       if(tokenVector[0]=="COPY"){
         for(int i=0; i<3;i++){
@@ -424,9 +799,12 @@ void verifyOperands(vector<string> tokenVector, unordered_map<string, int> &symb
   }
 }
 
-void secondpass(string auxdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb, string firstfile ){
+ 
+void secondpass(string auxdocument, const unordered_map<string, instructions> &set, const unordered_map<string, int> &directives, unordered_map<string, int> &symb, string firstfile, vector<int> bitmap, unordered_map<string, usecases> useTable, unordered_map<string, int> defTable ){
+  cout<<"começando second pass\n";
   string newTitle;
   int numberLine=1;
+  // int datapos =0;
   int dataLine;
   int beginDataLine;
   bool didText= false; //variavel para controlar se a seção TEXT ja foi lida
@@ -450,11 +828,47 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
     while (getline (mydocument, line)){
       vector<string> tokenVector;
       splitToVector(line, tokenVector);
-
+        // cout<<"abiu o arquivo\n";
         //tem sempre que achar um section antes de achar outras coisas
+        if(tokenVector.size()>1){
+          if(tokenVector[1]=="BEGIN"){
+            cout<<"BEGIN \n"<<tokenVector[0]<<"\n";
+            getchar();
+            newfile<< "H: "<< tokenVector[0]<<"\n";//escreve o titulo
+            newfile<<"H: "<< textSize <<"\n";
+            newfile<<"H: ";
+            for(auto v : bitmap){
+                newfile<< v <<" ";
+              }
+              newfile<<"\n";
+            for(auto use: useTable){//imprimir tabela de uso
+                istringstream ss(use.second.appearances);
+                vector<string> aux;  
+                string word;
+                cout<<"tabela de usoz: "<<use.first<<"\n";
+                while(ss>>word){//separa a string em palavras
+                  aux.push_back(word);
+                  cout<<word<<" ";
+                }
+                cout<<"\n";
+                getchar();
+
+                int sizeauc = aux.size();
+                for(int i=0; i<sizeauc;i++){
+                  if(aux[i]!="0"){
+                    newfile<<"U, "<<use.first<<", "<<aux[i]<<"\n";
+                  }
+                }
+            }
+            for(auto def: defTable){//imprime a tabela de definição no arquivo
+
+              newfile<<"D, "<< def.first<<", "<<def.second<<"\n";
+            }
+              newfile<<"T: ";
+          }
+        }
         if(tokenVector[0]=="SECTION"){
           if((tokenVector[1]=="DATA")&&(!didText)&&(foundText)){//se DATA vier depois de texto
-            // getchar();
             didText = true;
           }
           if((tokenVector[1]=="DATA")&&(!didText)){//se nao tiver passado por texto primeiro
@@ -479,6 +893,7 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
                 cout<<"\nERRO SINTÁTICO LINHA: "<< numberLine << " RÓTULO FALTANTE\n";
             }
             else{
+
               if(tokenVector.size()>3){
                 changeGlobalError();
 
@@ -486,6 +901,7 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
               }
               else{
                 if(isOnDirectives(directives, tokenVector[1])){
+
                   if(tokenVector[1]=="CONST"){
                     if(tokenVector.size()<3){//para const tem que ter tres argumentos
                       changeGlobalError();
@@ -599,10 +1015,16 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
               }
             }
             else{//se nao achouu na tabela de instrução
-              isThereError=true;
+              if(tokenVector[0]=="END"){
+
+              }else{
+                              isThereError=true;
               changeGlobalError();
 
               cout<<"ERRO SINTÁTICO LINHA: "<< numberLine << " INSTRUÇÃO: "<< tokenVector[0] <<" Inválida\n";
+
+              }
+
             }
             // numberLine++;
             if(mydocument.peek() == EOF){//se tiver chegado ao final do texto
@@ -618,6 +1040,7 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
   }
 }
 
+
 int main(int argc, char *argv[]) {
   //tem que verificar se tem um arquivo na linha de comando
   if(argc < 2){
@@ -625,7 +1048,11 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   //pega o nome do arquivo original
-  string originalFile = argv[1];
+  string originalFile;
+  for(int i =1; i<(argc); i++){
+    originalFile= argv[i];
+
+  
   //cria nome de um arquivo temporario que vai sair sem comentarios ou espaços extras
   size_t dotPosition= originalFile.find_last_of(".");
   if(dotPosition==string::npos){
@@ -641,13 +1068,43 @@ int main(int argc, char *argv[]) {
   unordered_map<string, instructions> instructionsSet;
   unordered_map<string, int> directives;
   unordered_map<string, int> symbolTable;//tabela de simbolos 
+  unordered_map<string, usecases> useTable;//tabela de simbolos 
+  unordered_map<string, int> defTable;//tabela de simbolos 
+  vector<int> bitmap;
+
+
 
   //firstpass
   createDirectiveTable(directives);
   createInstructions(instructionsSet);
-  firstpass(tempdocument, instructionsSet, directives, symbolTable, originalFile);
+  if(argc>2){
+    findBeginEnd(tempdocument);
+  }
+
+  findSize(tempdocument);
+  firstpass(tempdocument, instructionsSet, directives, symbolTable, originalFile, defTable, useTable);//constroi simble table
+  verifyusage(tempdocument, instructionsSet, useTable);
+  // cout<<"acabou verify, imprimindo:\n";
+  // for(auto use : useTable){
+  //   cout<< use.first << "  " << use.second.appearances <<"\n";
+  // }
+  createBitMap(bitmap, tempdocument, instructionsSet, directives);
+  // cout<<"imprimindo bitmap:\n";
+  //   for(auto v : bitmap){
+  //   cout<< v <<" ";
+  // }
+  cout<<"\n";
+
+  cout<<"imprimindo uso table\n";
+
+  for(auto v: useTable){
+    cout<< v.first << " "<< v.second.appearances;
+  }
   
-  secondpass(tempdocument, instructionsSet, directives, symbolTable, originalFile);
+  getchar();
+  secondpass(tempdocument, instructionsSet, directives, symbolTable, originalFile, bitmap, useTable, defTable);
+  cout<<"acabou\n";
+  }
 
 
 }
