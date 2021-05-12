@@ -14,4 +14,6 @@
     arquivo.obj
 
     onde ele é uma linha de codigos no formato
-    (Cod Section Text Arq 1)(Cod Section Text Arq 2)...(Cod Section Text Arq N)(Cod Section Data de todos os arquivos)
+    (Codigo do Modulo A) (Codigo do Modulo B)...
+
+    FAVOR TESTAR A SAÍDA DO LIGADOR NO SIMULADOR DO PROFESSOR

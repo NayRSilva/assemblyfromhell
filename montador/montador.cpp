@@ -114,9 +114,11 @@ mydocument.close();
 
 }
 
-void findSize(string newdocument ){
+void findSize(string newdocument, unordered_map<string, instructions> &set ){
 
   int size=0;
+  bool datafound=false;
+  bool textfound=false;
   ifstream mydocument; //arquivo modificado para leitura
   mydocument.open(newdocument);
 //ROTULO: Nao pode começar com numero nem ter caractere especial
@@ -128,12 +130,48 @@ void findSize(string newdocument ){
   }
   else{
     while (getline (mydocument, line)){
-      size++;
+      vector<string> tokenVector;
+      splitToVector(line, tokenVector);
+
+      if(tokenVector[0]=="SECTION"){
+          if(tokenVector[1]=="DATA"){
+            datafound=true;
+          }
+          if(tokenVector[1]=="TEXT"){
+            textfound=true;
+          }
+      }else if((datafound)||(textfound)){
+                  
+        if(isLabel(tokenVector)){
+            bool isInstruction=false;
+          for(auto inst: set){
+            if(inst.first==tokenVector[1]){
+            size= size+ set.at(tokenVector[1]).size;
+
+
+            }
+          }
+          if(!isInstruction){
+            size++;
+          }
+        }else{//se nao for label deve ser instruction
+          for(auto inst: set){
+            if(inst.first==tokenVector[0]){
+            size= size+ set.at(tokenVector[0]).size;
+
+
+            }
+          }
+}
+
+        }
+      }
+      // size++;
   }
   mydocument.close();
   textSize= size;
   }
-}
+
 int findLine(vector<string> tokenVector, string originalFile){//função p achar linha no programa original..
   int linenum=1;
   ifstream mydocument; //arquivo original, leitura
@@ -313,7 +351,6 @@ void placeLabel(int *position, vector<string> vector, unordered_map<string, int>
 
     if((vector[1]=="EXTERN")||(vector[1]=="BEGIN")){//se for a diretiva extern ou begin recebe um 0
         cout<<vector[1]<<"\n";
-        getchar();
         isTokenValid(first, originalFile, vector);
         symbTabel[first] = 0;//bota na chave "LABEL" a posição 0
         //INSERE NA TABELA DE USO
@@ -833,7 +870,6 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
         if(tokenVector.size()>1){
           if(tokenVector[1]=="BEGIN"){
             cout<<"BEGIN \n"<<tokenVector[0]<<"\n";
-            getchar();
             newfile<< "H: "<< tokenVector[0]<<"\n";//escreve o titulo
             newfile<<"H: "<< textSize <<"\n";
             newfile<<"H: ";
@@ -851,7 +887,6 @@ void secondpass(string auxdocument, const unordered_map<string, instructions> &s
                   cout<<word<<" ";
                 }
                 cout<<"\n";
-                getchar();
 
                 int sizeauc = aux.size();
                 for(int i=0; i<sizeauc;i++){
@@ -1081,7 +1116,9 @@ int main(int argc, char *argv[]) {
     findBeginEnd(tempdocument);
   }
 
-  findSize(tempdocument);
+  findSize(tempdocument, instructionsSet);
+  textSize--; //corrige pq ele conta o END
+  cout<<textSize;
   firstpass(tempdocument, instructionsSet, directives, symbolTable, originalFile, defTable, useTable);//constroi simble table
   verifyusage(tempdocument, instructionsSet, useTable);
   // cout<<"acabou verify, imprimindo:\n";
@@ -1101,7 +1138,6 @@ int main(int argc, char *argv[]) {
     cout<< v.first << " "<< v.second.appearances;
   }
   
-  getchar();
   secondpass(tempdocument, instructionsSet, directives, symbolTable, originalFile, bitmap, useTable, defTable);
   cout<<"acabou\n";
   }

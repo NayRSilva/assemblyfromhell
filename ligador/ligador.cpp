@@ -113,7 +113,7 @@ bool isOnDef(const unordered_map<string, int> &def, string aux){
 }
 
 
-void modificaSaida(string mydocument, vector<string>&text,vector<string>&data,unordered_map<string, int> defGeralTable){
+void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, int> defGeralTable){
 
     int contador =0;
     ifstream document; //arquivo modificado para leitura
@@ -220,28 +220,28 @@ void modificaSaida(string mydocument, vector<string>&text,vector<string>&data,un
     }
 
   }
-  //caso tiver que usar TEXT DATA TEXT DATA
-  // for(auto vetor: codesectionT){
-  //   text.push_back(vetor);
+
+  for(auto vetor: codesectionT){
+    text.push_back(vetor);
+  }
+  // for(int j=0; j< textsectionSize; j++){//adiciona o que é de texto na seção de texto
+  //   text.push_back(codesectionT[j]);
   // }
-  for(int j=0; j< textsectionSize; j++){//adiciona o que é de texto na seção de texto
-    text.push_back(codesectionT[j]);
-  }
-  int codesectionTsize = codesectionT.size();
-  for(int j=textsectionSize; j<codesectionTsize; j++){
-    data.push_back(codesectionT[j]);
-  }
+  // int codesectionTsize = codesectionT.size();
+  // for(int j=textsectionSize; j<codesectionTsize; j++){
+  //   data.push_back(codesectionT[j]);
+  // }
 }
 
-void criaArquivo(string myfile, vector<string> textsec, vector<string>datasec){
+void criaArquivo(string myfile, vector<string> textsec){
   ofstream newfile; //arquivo novo, escrita
   newfile.open(myfile);
   for(auto word:textsec){
     newfile<< word<<" ";
   }
-  for(auto word:datasec){
-    newfile<< word<<" ";
-  }
+  // for(auto word:datasec){
+  //   newfile<< word<<" ";
+  // }
 
   newfile.close();
 }
@@ -282,13 +282,13 @@ int main(int argc, char *argv[]) {
   }
 
   for(int i=0; i<fileNameSize;i++){
-      modificaSaida(filesNames[i], textsec, datasec, defGeralTable );
+      modificaSaida(filesNames[i], textsec, defGeralTable );
 
   }
 
 
 
-  criaArquivo("arquivo.obj", textsec, datasec);  
+  criaArquivo("arquivo.obj", textsec);  
 
 
 
