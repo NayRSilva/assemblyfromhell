@@ -236,14 +236,13 @@ void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, 
 
       if((bitmap[j]=="1")){
         if(find(alreadymodified.begin(), alreadymodified.end(),j)!=alreadymodified.end()){
-            cout<<"posicao modificada "<<j;
         }else{
                      string auxchange=  codesectionT[j];
         int auxcc = atoi(auxchange.c_str());
         auxcc= auxcc+filesize;
-        cout<<"here now: "<<auxcc;
-        getchar();
+        cout<<"modificado"<< auxcc;
         codesectionT[j]= to_string(auxcc);
+
         }
 
       }
