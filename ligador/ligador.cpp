@@ -113,7 +113,7 @@ bool isOnDef(const unordered_map<string, int> &def, string aux){
 }
 
 
-void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, int> defGeralTable){
+void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, int> defGeralTable, int filesize){
 
     int contador =0;
     ifstream document; //arquivo modificado para leitura
@@ -182,10 +182,10 @@ void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, 
   }
   //hora da substituição
 
+  vector<string> stringpositions;
   if(!usetable.empty()){//se houver tabela de uso
     for(auto use: usetable){//quebrando a string em vetores de posiçao
         string name = use.first;
-        vector<string> stringpositions;
         vector<int> subposition;
         //passando appearances p vetor de string
         istringstream ss(use.second.appearances);
@@ -219,6 +219,58 @@ void modificaSaida(string mydocument, vector<string>&text,unordered_map<string, 
 
     }
 
+  }
+    vector<int> alreadymodified;
+    for(auto use: stringpositions){
+      int positionusetable = atoi(use.c_str());
+      // int aux = j+1;
+      // cout<<"posuse: "<< positionusetable<<" aux:"<< aux<<"\n";
+      // getchar();
+      alreadymodified.push_back(positionusetable);//posiçao ja modificada
+    }
+
+  int bitsize = bitmap.size();
+  int  sizem = alreadymodified.size();
+
+    for(int j=0; j<bitsize;j++){
+
+      if((bitmap[j]=="1")){
+        if(find(alreadymodified.begin(), alreadymodified.end(),j)!=alreadymodified.end()){
+            cout<<"posicao modificada "<<j;
+        }else{
+                     string auxchange=  codesectionT[j];
+        int auxcc = atoi(auxchange.c_str());
+        auxcc= auxcc+filesize;
+        cout<<"here now: "<<auxcc;
+        getchar();
+        codesectionT[j]= to_string(auxcc);
+        }
+
+      }
+    
+      // {
+      //     string auxchange=  codesectionT[j];
+      //   int auxcc = atoi(auxchange.c_str());
+      //   auxcc= auxcc+filesize;
+      //   cout<<"here now: "<<auxcc;
+      //   getchar();
+      //   codesectionT[j]= to_string(auxcc);
+      // }       
+     
+
+    
+   
+  }
+
+    cout<<"\n";
+    for(int j=0; j<bitsize; j++){
+    cout<<codesectionT[j]<<" ";
+
+  }
+
+  cout<<"\n";
+   for(auto vetor: codesectionT){
+    cout<<vetor<<" ";
   }
 
   for(auto vetor: codesectionT){
@@ -282,7 +334,13 @@ int main(int argc, char *argv[]) {
   }
 
   for(int i=0; i<fileNameSize;i++){
-      modificaSaida(filesNames[i], textsec, defGeralTable );
+    if(i==0){
+      modificaSaida(filesNames[i], textsec, defGeralTable, 0 );
+
+    }else{
+
+      modificaSaida(filesNames[i], textsec, defGeralTable, tamanhosArquivos[i-1] );
+    }
 
   }
 
